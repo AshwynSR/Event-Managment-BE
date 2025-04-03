@@ -30,6 +30,7 @@ func getEvent(context *gin.Context) {
 }
 
 func createEvent(context *gin.Context) {
+
 	var event models.Event
 	err := context.ShouldBindBodyWithJSON(&event)
 
@@ -38,8 +39,7 @@ func createEvent(context *gin.Context) {
 		return
 	}
 
-	event.ID = 1
-	event.UserId = 1
+	event.UserId = context.GetInt64("userId")
 	err = event.Save()
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Error while saving data"})
@@ -63,6 +63,10 @@ func updateEvent(context *gin.Context) {
 		return
 	}
 
+	if preEvent.UserId != context.GetInt64("userId") {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not Authorized to update this event"})
+		return
+	}
 	newEvent.ID = preEvent.ID
 	err = newEvent.Update()
 
@@ -79,6 +83,11 @@ func deleteEvent(context *gin.Context) {
 	event, err := models.GetEvent(searchId)
 	if err != nil {
 		context.JSON(http.StatusNotFound, gin.H{"message": "Event with the given ID not found"})
+		return
+	}
+
+	if event.UserId != context.GetInt64("userId") {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not Authorized to delete this event"})
 		return
 	}
 
